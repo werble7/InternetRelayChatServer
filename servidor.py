@@ -2,7 +2,7 @@ import socket
 import threading
 
 
-class Cliente:
+class Client:
 
     def __init__(self, sock, addr):
         self.username = ''
@@ -20,8 +20,13 @@ class ChatServer:
         self.last_received_message = ""
         self.create_listening_server()
 
-    def newClientHandler(self, args):
-        pass
+    def newClientHandler(self, client, args):
+        args = args.split()
+        client.username = args[1]
+        client.nickname = args[2]
+        self.last_received_message = client.nickname + " joined the chat"
+        print(self.last_received_message)
+        self.broadcast_to_all_clients(client)
 
     def nickClientHandler(self):
         pass
@@ -42,31 +47,41 @@ class ChatServer:
 
         self.server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.server_socket.bind((socket.gethostname(), 50000))
-        print("Waiting for connection..")
+        print("Waiting for connection...")
         self.server_socket.listen(5)
         self.receive_messages_in_a_new_thread()
 
-    def receive_messages(self, so):
+    def receive_messages(self, client):
         while True:
-            incoming_buffer = so.recv(256)
+            incoming_buffer = client.socket.recv(256)
             if not incoming_buffer:
                 break
             self.last_received_message = incoming_buffer.decode('utf-8')
-            self.broadcast_to_all_clients(so)
-        so.close()
+            msg = self.last_received_message
+            if client.username == client.nickname == '':
+                if msg.split()[0] == "!USER":
+                    self.newClientHandler(client, msg)
+                else:
+                    client.socket.sendall("To create a new user insert: !USER <username> <nickname>".encode('utf-8'))
+            else:
+                self.broadcast_to_all_clients(client)
+        client.socket.close()
 
-    def broadcast_to_all_clients(self, senders_socket):
+    def broadcast_to_all_clients(self, sender):
         for client in self.clients_list:
-            if client.socket is not senders_socket:
-                msg = client.ip + " " + str(client.port) + ": " + self.last_received_message
+            if client.socket is not sender.socket:
+                msg = sender.nickname + ": " + self.last_received_message
+
+                if 'joined the chat' in msg:
+                    msg = self.last_received_message
+
                 client.socket.sendall(str(msg).encode('utf-8'))
 
     def receive_messages_in_a_new_thread(self):
         while True:
             so, (ip, port) = self.server_socket.accept()
-            self.add_to_clients_list(Cliente(so, (ip, port)))
-            print('Connected to ', ip, ':', str(port))
-            t = threading.Thread(target=self.receive_messages, args=(so,))
+            self.add_to_clients_list(Client(so, (ip, port)))
+            t = threading.Thread(target=self.receive_messages, args=(Client(so, (ip, port)),))
             t.start()
             so.sendall("Connected on server!".encode('utf-8'))
 
