@@ -9,14 +9,14 @@ def receive_messages_from_server(so):
         if not buffer:
             break
         message = buffer.decode('utf-8')
-
         print(message)
-        so.close()
+
+    so.close()
 
 
 if __name__ == '__main__':
 
-    print("Conectando...")
+    print("Connecting...")
 
     cliente = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     time.sleep(5)
@@ -24,8 +24,11 @@ if __name__ == '__main__':
     msg = ''
 
     while 1:
+        t = threading.Thread(target=receive_messages_from_server, args=(cliente,))
+        t.start()
+
         if not msg:
-            msg = input('Digite: ')
+            msg = input()
         else:
             cliente.send(msg.encode('utf-8'))
             msg = ''
