@@ -8,22 +8,39 @@ class Cliente:
         self.username = ''
         self.nickname = ''
         self.socket = sock
-        self.addr = addr
+        self.ip = addr[0]
+        self.port = addr[1]
 
 
 class ChatServer:
-    clients_list = []
-
-    last_received_message = ""
 
     def __init__(self):
         self.server_socket = None
+        self.clients_list = []
+        self.last_received_message = ""
         self.create_listening_server()
 
-    # listen for incoming connection
+    def newClientHandler(self, args):
+        pass
+
+    def nickClientHandler(self):
+        pass
+
+    def deleteClientHandler(self):
+        pass
+
+    def subscribeChannelHandler(self):
+        pass
+
+    def unsubscribeChannelHandler(self):
+        pass
+
+    def listChannelHandler(self):
+        pass
+
     def create_listening_server(self):
 
-        self.server_socket = socket.socket(socket.AF_INET,socket.SOCK_STREAM)
+        self.server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.server_socket.bind((socket.gethostname(), 50000))
         print("Waiting for connection..")
         self.server_socket.listen(5)
@@ -40,18 +57,18 @@ class ChatServer:
 
     def broadcast_to_all_clients(self, senders_socket):
         for client in self.clients_list:
-            so, (ip, port) = client
-            if so is not senders_socket:
-                msg = ip + " " + str(port) + ": " + self.last_received_message
-                so.sendall(str(msg).encode('utf-8'))
+            if client.socket is not senders_socket:
+                msg = client.ip + " " + str(client.port) + ": " + self.last_received_message
+                client.socket.sendall(str(msg).encode('utf-8'))
 
     def receive_messages_in_a_new_thread(self):
         while True:
-            client = so, (ip, port) = self.server_socket.accept()
-            self.add_to_clients_list(client)
+            so, (ip, port) = self.server_socket.accept()
+            self.add_to_clients_list(Cliente(so, (ip, port)))
             print('Connected to ', ip, ':', str(port))
             t = threading.Thread(target=self.receive_messages, args=(so,))
             t.start()
+            so.sendall("Connected on server!".encode('utf-8'))
 
     def add_to_clients_list(self, client):
         if client not in self.clients_list:
