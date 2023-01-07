@@ -20,16 +20,35 @@ class ChatServer:
         self.last_received_message = ""
         self.create_listening_server()
 
+    def commandHandler(self, client, args):
+        if client.username == '' == client.nickname:
+            if args.split()[0] == "!USER":
+                self.newClientHandler(client, args)
+            else:
+                self.last_received_message = "!USER <username> <nickname> to join server"
+                client.socket.sendall(self.last_received_message.encode('utf-8'))
+        elif args[0] == "!":
+            if args.split()[0] == "!NICK":
+                self.nickClientHandler(client, args)
+        else:
+            self.broadcast_to_all_clients(client)
+
     def newClientHandler(self, client, args):
         args = args.split()
         client.username = args[1]
         client.nickname = args[2]
-        self.last_received_message = client.nickname + " joined the chat"
+        self.last_received_message = f"{client.username} ({client.nickname}) has joined the chat"
         print(self.last_received_message)
         self.broadcast_to_all_clients(client)
 
-    def nickClientHandler(self):
-        pass
+    def nickClientHandler(self, client, args):
+        newNick = args.split()
+        for client2 in self.clients_list:
+            if client2.socket is not client.socket:
+                msg = f"{client.username} ({client.nickname}) has changed his nick to {newNick[1]}"
+                client2.socket.sendall(str(msg).encode('utf-8'))
+        client.nickname = newNick[1]
+        print(msg)
 
     def deleteClientHandler(self):
         pass
@@ -58,13 +77,12 @@ class ChatServer:
                 break
             self.last_received_message = incoming_buffer.decode('utf-8')
             msg = self.last_received_message
-            if client.username == client.nickname == '':
-                if msg.split()[0] == "!USER":
-                    self.newClientHandler(client, msg)
-                else:
-                    client.socket.sendall("To create a new user insert: !USER <username> <nickname>".encode('utf-8'))
-            else:
-                self.broadcast_to_all_clients(client)
+
+            self.commandHandler(client, msg)
+
+            if client.username != "":
+                print(client.nickname + ": " + msg)
+
         client.socket.close()
 
     def broadcast_to_all_clients(self, sender):
