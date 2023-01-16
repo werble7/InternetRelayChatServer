@@ -1,5 +1,6 @@
 import socket
 import threading
+import time
 
 
 class Client:
@@ -8,6 +9,7 @@ class Client:
         self.username = ''
         self.nickname = ''
         self.socket = sock
+        self.channel = "channel 1"
         self.ip = addr[0]
         self.port = addr[1]
 
@@ -17,6 +19,7 @@ class ChatServer:
     def __init__(self):
         self.server_socket = None
         self.clients_list = []
+        self.channel_list = ["channel 1"]
         self.last_received_message = ""
         self.create_listening_server()
 
@@ -30,6 +33,8 @@ class ChatServer:
         elif args[0] == "!":
             if args.split()[0] == "!NICK":
                 self.nickClientHandler(client, args)
+            elif args.split()[0] == "!LIST":
+                self.listChannelHandler(client, args)
         else:
             self.broadcast_to_all_clients(client)
 
@@ -59,8 +64,15 @@ class ChatServer:
     def unsubscribeChannelHandler(self):
         pass
 
-    def listChannelHandler(self):
-        pass
+    def listChannelHandler(self, client, args):
+        msg = "Channel list: "
+        print(msg)
+        client.socket.sendall(msg.encode("utf-8"))
+        time.sleep(0.5)
+        for channel in self.channel_list:
+            print(channel)
+            msg = channel
+            client.socket.sendall(msg.encode("utf-8"))
 
     def create_listening_server(self):
 
