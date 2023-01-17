@@ -35,25 +35,36 @@ class ChatServer:
                 self.nickClientHandler(client, args)
             elif args.split()[0] == "!LIST":
                 self.listChannelHandler(client, args)
+            else:
+                client.socket.sendall("Command does not exist!".encode('utf-8'))
         else:
             self.broadcast_to_all_clients(client)
 
     def newClientHandler(self, client, args):
         args = args.split()
-        client.username = args[1]
-        client.nickname = args[2]
-        self.last_received_message = f"{client.username} ({client.nickname}) has joined the chat"
-        print(self.last_received_message)
-        self.broadcast_to_all_clients(client)
+        if len(args) != 3:
+            client.socket.sendall("!USER <username> <nickname> to join server".encode("utf-8"))
+        else:
+            client.username = args[1]
+            client.nickname = args[2]
+            self.last_received_message = f"{client.username} ({client.nickname}) has joined {client.channel}"
+            print(self.last_received_message)
+            self.broadcast_to_all_clients(client)
 
     def nickClientHandler(self, client, args):
+        flag = False
         newNick = args.split()
-        for client2 in self.clients_list:
-            if client2.socket is not client.socket:
-                msg = f"{client.username} ({client.nickname}) has changed his nick to {newNick[1]}"
-                client2.socket.sendall(str(msg).encode('utf-8'))
-        client.nickname = newNick[1]
-        print(msg)
+        if len(newNick) != 2:
+            client.socket.sendall("!NICK <newNick> to change the nickname!".encode('utf-8'))
+        else:
+            for client2 in self.clients_list:
+                if client2.socket is not client.socket:
+                    msg = f"{client.username} ({client.nickname}) has changed his nick to {newNick[1]}"
+                    client2.socket.sendall(str(msg).encode('utf-8'))
+                    flag = True
+            if flag:
+                client.nickname = newNick[1]
+                print(msg)
 
     def deleteClientHandler(self):
         pass
@@ -65,14 +76,16 @@ class ChatServer:
         pass
 
     def listChannelHandler(self, client, args):
-        msg = "Channel list: "
-        print(msg)
-        client.socket.sendall(msg.encode("utf-8"))
-        time.sleep(0.5)
-        for channel in self.channel_list:
-            print(channel)
-            msg = channel
+        if args != "!LIST":
+            client.socket.sendall("!LIST to show all channels".encode('utf-8'))
+        else:
+            msg = "Channel list: "
+            print(msg)
             client.socket.sendall(msg.encode("utf-8"))
+            for channel in self.channel_list:
+                print(channel)
+                msg = channel
+                client.socket.sendall(msg.encode("utf-8"))
 
     def create_listening_server(self):
 
@@ -113,7 +126,7 @@ class ChatServer:
             self.add_to_clients_list(Client(so, (ip, port)))
             t = threading.Thread(target=self.receive_messages, args=(Client(so, (ip, port)),))
             t.start()
-            so.sendall("Connected on server!".encode('utf-8'))
+            so.sendall("Connected on channel 1!".encode('utf-8'))
 
     def add_to_clients_list(self, client):
         if client not in self.clients_list:
@@ -122,7 +135,4 @@ class ChatServer:
 
 if __name__ == '__main__':
 
-    try:
-        ChatServer()
-    except ConnectionResetError:
-        pass
+    ChatServer()
