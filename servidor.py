@@ -1,6 +1,5 @@
 import socket
 import threading
-import time
 
 
 class Client:
@@ -19,7 +18,7 @@ class ChatServer:
     def __init__(self):
         self.server_socket = None
         self.clients_list = []
-        self.channel_list = ["channel 1"]
+        self.channel_list = ["channel 1", '']
         self.last_received_message = ""
         self.create_listening_server()
 
@@ -36,7 +35,7 @@ class ChatServer:
             elif args.split()[0] == "!LIST":
                 self.listChannelHandler(client, args)
             else:
-                client.socket.sendall("Command does not exist!".encode('utf-8'))
+                client.socket.sendall("ERR UNKNOWNCOMMAND".encode('utf-8'))
         else:
             self.broadcast_to_all_clients(client)
 
@@ -69,10 +68,10 @@ class ChatServer:
     def deleteClientHandler(self):
         pass
 
-    def subscribeChannelHandler(self):
+    def subscribeChannelHandler(self, client, args):
         pass
 
-    def unsubscribeChannelHandler(self):
+    def unsubscribeChannelHandler(self, client, args):
         pass
 
     def listChannelHandler(self, client, args):
